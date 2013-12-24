@@ -220,7 +220,7 @@ extern "system" {
 
     pub fn PeekConsoleInputW(arg1: HANDLE, arg2: *INPUT_RECORD, arg3: DWORD, arg4: PDWORD) -> BOOL;
 
-    pub fn ReadConsoleW(arg1: HANDLE, arg2: PVOID, arg3: DWORD, arg4: PDWORD, arg5: PVOID) -> BOOL;
+    pub fn ReadConsoleW(arg1: HANDLE, arg2: *mut c_void, arg3: DWORD, arg4: PDWORD, arg5: PVOID) -> BOOL;
 
     pub fn ReadConsoleInputW(arg1: HANDLE, arg2: *INPUT_RECORD, arg3: DWORD, arg4: PDWORD) -> BOOL;
 
