@@ -200,13 +200,13 @@ extern "system" {
 
     pub fn GetConsoleCP() -> UINT;
 
-    pub fn GetConsoleCursorInfo(arg1: HANDLE, arg2: *CONSOLE_CURSOR_INFO) -> BOOL;
+    pub fn GetConsoleCursorInfo(arg1: HANDLE, arg2: *mut CONSOLE_CURSOR_INFO) -> BOOL;
 
     pub fn GetConsoleMode(arg1: HANDLE, arg2: PDWORD) -> BOOL;
 
     pub fn GetConsoleOutputCP() -> UINT;
 
-    pub fn GetConsoleScreenBufferInfo(arg1: HANDLE, arg2: *CONSOLE_SCREEN_BUFFER_INFO) -> BOOL;
+    pub fn GetConsoleScreenBufferInfo(arg1: HANDLE, arg2: *mut CONSOLE_SCREEN_BUFFER_INFO) -> BOOL;
 
     pub fn GetConsoleTitleW(arg1: LPWSTR, arg2: DWORD) -> DWORD;
 
@@ -218,11 +218,11 @@ extern "system" {
 
     pub fn GetNumberOfConsoleMouseButtons(arg1: PDWORD) -> BOOL;
 
-    pub fn PeekConsoleInputW(arg1: HANDLE, arg2: *INPUT_RECORD, arg3: DWORD, arg4: PDWORD) -> BOOL;
+    pub fn PeekConsoleInputW(arg1: HANDLE, arg2: *mut INPUT_RECORD, arg3: DWORD, arg4: PDWORD) -> BOOL;
 
     pub fn ReadConsoleW(arg1: HANDLE, arg2: *mut c_void, arg3: DWORD, arg4: PDWORD, arg5: PVOID) -> BOOL;
 
-    pub fn ReadConsoleInputW(arg1: HANDLE, arg2: *INPUT_RECORD, arg3: DWORD, arg4: PDWORD) -> BOOL;
+    pub fn ReadConsoleInputW(arg1: HANDLE, arg2: *mut INPUT_RECORD, arg3: DWORD, arg4: PDWORD) -> BOOL;
 
     pub fn ReadConsoleOutputAttribute(
         arg1: HANDLE, arg2: LPWORD, arg3: DWORD, arg4: COORD, arg5: LPDWORD
@@ -233,7 +233,7 @@ extern "system" {
     ) -> BOOL;
 
     pub fn ReadConsoleOutputW(
-        arg1: HANDLE, arg2: *CHAR_INFO, arg3: COORD, arg4: COORD, arg5: *SMALL_RECT
+        arg1: HANDLE, arg2: *mut CHAR_INFO, arg3: COORD, arg4: COORD, arg5: *mut SMALL_RECT
     ) -> BOOL;
 
     pub fn ScrollConsoleScreenBufferW(
