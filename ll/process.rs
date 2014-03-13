@@ -1,3 +1,5 @@
+#[allow(non_camel_case_types)];
+
 use windows::ll::*;
 
 pub struct SECURITY_ATTRIBUTES {

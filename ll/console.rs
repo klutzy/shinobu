@@ -1,3 +1,6 @@
+#[allow(non_camel_case_types)];
+#[allow(uppercase_variables)];
+
 use std;
 
 use windows::ll::*;
@@ -25,11 +28,19 @@ pub struct Char {
 }
 
 impl Char {
+    pub fn unicode_char(&self) -> Option<char> {
+        let w = unsafe {
+            let pw: *WCHAR = std::cast::transmute(&self.data);
+            *pw
+        };
+        std::char::from_u32(w as u32)
+    }
+
     pub fn UnicodeChar(&mut self) -> *mut WCHAR {
-        unsafe { std::cast::transmute(&std::ptr::to_mut_unsafe_ptr(self)) }
+        unsafe { std::cast::transmute(&self) }
     }
     pub fn AsciiChar(&mut self) -> *mut CHAR {
-        unsafe { std::cast::transmute(&std::ptr::to_mut_unsafe_ptr(self)) }
+        unsafe { std::cast::transmute(&self) }
     }
 }
 
@@ -46,19 +57,19 @@ pub struct EventRecord {
 
 impl EventRecord {
     pub fn KeyEvent(&mut self) -> *mut KEY_EVENT_RECORD {
-        unsafe { std::cast::transmute(&std::ptr::to_mut_unsafe_ptr(self)) }
+        unsafe { std::cast::transmute(&self) }
     }
     pub fn MouseEvent(&mut self) -> *mut MOUSE_EVENT_RECORD {
-        unsafe { std::cast::transmute(&std::ptr::to_mut_unsafe_ptr(self)) }
+        unsafe { std::cast::transmute(&self) }
     }
     pub fn WindowBufferSizeEvent(&mut self) -> *mut WINDOW_BUFFER_SIZE_RECORD {
-        unsafe { std::cast::transmute(&std::ptr::to_mut_unsafe_ptr(self)) }
+        unsafe { std::cast::transmute(&self) }
     }
     pub fn MenuEvent(&mut self) -> *mut MENU_EVENT_RECORD {
-        unsafe { std::cast::transmute(&std::ptr::to_mut_unsafe_ptr(self)) }
+        unsafe { std::cast::transmute(&self) }
     }
     pub fn FocusEvent(&mut self) -> *mut FOCUS_EVENT_RECORD {
-        unsafe { std::cast::transmute(&std::ptr::to_mut_unsafe_ptr(self)) }
+        unsafe { std::cast::transmute(&self) }
     }
 }
 
