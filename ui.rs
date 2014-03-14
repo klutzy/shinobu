@@ -10,12 +10,14 @@ use windows::gdi::WindowPaint;
 use windows::instance::Instance;
 use windows::resource::Image;
 use windows::resource;
-use windows::ll::{HBRUSH, CREATESTRUCT, LRESULT, LPARAM, UINT, WPARAM};
+use windows::ll::{HBRUSH, CREATESTRUCT, LRESULT, LPARAM, UINT, WPARAM, UINT_PTR, HWND, BOOL, RECT};
 use windows::font;
 use windows;
 
 use super::console;
 use super::console::ConsoleProcess;
+
+static TIMER_ID: UINT_PTR = 0x123;
 
 pub struct ConsoleWindow {
     win: Window,
@@ -24,12 +26,32 @@ pub struct ConsoleWindow {
     subproc: ConsoleProcess,
 }
 
+// extern "stdcall" fn TimerProc(hwnd: HWND, uMsg: UINT, idEvent: UINT_PTR, dwTime: DWORD);
+type TIMERPROC = *();
+
+extern "system" {
+    fn SetTimer(hWnd: HWND, nIDEvent: UINT_PTR, uElapse: UINT, lpTimerFunc: TIMERPROC) -> UINT_PTR;
+
+    fn InvalidateRect(hWnd: HWND, lpRect: *RECT, bErase: BOOL) -> BOOL;
+}
+
 #[path = "wnd_proc_macro.rs"]
 mod macro;
 
-wnd_proc!(ConsoleWindow, win, WM_CREATE, WM_DESTROY, WM_PAINT)
+wnd_proc!(ConsoleWindow, win, WM_CREATE, WM_DESTROY, WM_PAINT, WM_TIMER)
 
-impl OnCreate for ConsoleWindow {}
+impl OnCreate for ConsoleWindow {
+    fn on_create(&self, _cs: &CREATESTRUCT) -> bool {
+        let ret = unsafe {
+            SetTimer(self.wnd().wnd, TIMER_ID, 10, ptr::null())
+        };
+        if ret == 0 {
+            return false;
+        }
+
+        true
+    }
+}
 
 impl OnDestroy for ConsoleWindow {}
 
@@ -59,6 +81,21 @@ impl OnPaint for ConsoleWindow {
     }
 }
 
+// FIXME trait OnTimer
+impl ConsoleWindow {
+    fn on_timer(&self) {
+        let output = self.subproc.read_console();
+        let is_changed = self.buf.with(|o| { !output.equiv(o) });
+        debug!("on_timer: is_changed {}", is_changed);
+        if is_changed {
+            self.buf.set(output);
+            unsafe {
+                InvalidateRect(self.wnd().wnd, ptr::null(), 1);
+            }
+        }
+    }
+}
+
 impl ConsoleWindow {
     pub fn new(instance: Instance, title: ~str) -> Option<Window> {
         let mut font_attr: font::FontAttr = Default::default();
@@ -70,7 +107,7 @@ impl ConsoleWindow {
             None => return None,
         };
 
-        let cmd_line = "ls"; // FIXME just for test
+        let cmd_line = "cmd";
 
         let subproc = console::create_subprocess(cmd_line);
         let subproc = match subproc {
@@ -82,8 +119,6 @@ impl ConsoleWindow {
         let _ret = subproc.set_screen_buffer_size(x, y);
 
         let output = subproc.read_console();
-        //println!("output: `{:?}`", output.slice_to(400));
-
 
         let wnd_class = WndClass {
             classname: ~"ConsoleWindow",

@@ -39,6 +39,12 @@ macro_rules! wnd_proc_thunk(
             return 0 as LRESULT;
         }
     );
+    (WM_TIMER) => (
+        if msg == 0x0113 { // WM_TIMER
+            self.on_timer();
+            return 0 as LRESULT;
+        }
+    );
 )
 
 macro_rules! wnd_proc(
