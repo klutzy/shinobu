@@ -37,7 +37,7 @@ pub struct ConsoleProcess {
     in_handle: HANDLE,
     out_handle: HANDLE,
     err_handle: HANDLE,
-    proc_handle: HANDLE,
+    proc_id: DWORD,
 }
 
 pub fn create_subprocess(cmd_line: &str) -> Option<ConsoleProcess> {
@@ -81,13 +81,13 @@ pub fn create_subprocess(cmd_line: &str) -> Option<ConsoleProcess> {
     };
 
     let mut cmd_line_u = cmd_line.to_c_u16();
-    let proc_handle = unsafe {
+    let proc_ret = unsafe {
         ll::process::CreateProcessW(
             ptr::null(), cmd_line_u.as_mut_ptr(), &def_attrs, &def_attrs,
             1, 0, ptr::mut_null(), ptr::null(), &startup_info, &mut proc_info
         )
     };
-    if proc_handle == 0 {
+    if proc_ret == 0 {
         let err = unsafe { ll::process::GetLastError() };
         debug!("err: {:?}", err);
         return None; // FIXME
@@ -97,7 +97,7 @@ pub fn create_subprocess(cmd_line: &str) -> Option<ConsoleProcess> {
         in_handle: in_handle,
         out_handle: out_handle,
         err_handle: err_handle,
-        proc_handle: proc_handle as HANDLE,
+        proc_id: proc_info.dwProcessId,
     };
     Some(ret)
 }
@@ -155,13 +155,29 @@ impl ConsoleProcess {
         }
 
         let mut output: ~[char] = ~[];
-        for (n, b) in buf.iter().enumerate() {
-            // FIXME use b.Attributes: trailing byte / leading byte
+        let mut x = 0;
+        //let mut y = 0;
+        for b in buf.iter() {
+            if b.Attributes & 0x0200 != 0 {
+                continue; // trailing byte
+            }
             let c = b.uChar.unicode_char();
             let c = c.unwrap();
+            if c == '\x00' {
+                break;
+            }
             output.push(c);
-            if n % (size.X as uint) == (size.X as uint - 1) {
+            if x % (size.X as uint) == (size.X as uint - 1) {
+                output.push('\r'); // FIXME this is really bogus
                 output.push('\n');
+                x = 0;
+                // y += 1;
+            } else {
+                x += 1;
+                if b.Attributes & 0x0100 != 0 {
+                    // leading byte
+                    x += 1;
+                }
             }
         }
         from_chars(output)
