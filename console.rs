@@ -51,7 +51,7 @@ impl ConsoleProcess {
         };
         let in_handle = create_con("CONIN$", &def_attrs);
         let out_handle = create_con("CONOUT$", &def_attrs);
-        let err_handle = create_con("CONERR$", &def_attrs);
+        let err_handle = create_con("CONOUT$", &def_attrs);
 
         let startup_info = ll::process::STARTUPINFO {
             cb: mem::size_of::<ll::process::STARTUPINFO>() as DWORD,
