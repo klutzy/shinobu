@@ -40,69 +40,69 @@ pub struct ConsoleProcess {
     proc_id: DWORD,
 }
 
-pub fn create_subprocess(cmd_line: &str) -> Option<ConsoleProcess> {
-    static STARTF_USESTDHANDLES: DWORD = 0x100;
+impl ConsoleProcess {
+    pub fn new(cmd_line: &str) -> Option<ConsoleProcess> {
+        static STARTF_USESTDHANDLES: DWORD = 0x100;
 
-    let def_attrs = ll::process::SECURITY_ATTRIBUTES {
-        nLength: mem::size_of::<ll::process::SECURITY_ATTRIBUTES>() as DWORD,
-        lpSecurityDescriptor: ptr::mut_null(),
-        bInheritHandle: 1,
-    };
-    let in_handle = create_con("CONIN$", &def_attrs);
-    let out_handle = create_con("CONOUT$", &def_attrs);
-    let err_handle = create_con("CONERR$", &def_attrs);
+        let def_attrs = ll::process::SECURITY_ATTRIBUTES {
+            nLength: mem::size_of::<ll::process::SECURITY_ATTRIBUTES>() as DWORD,
+            lpSecurityDescriptor: ptr::mut_null(),
+            bInheritHandle: 1,
+        };
+        let in_handle = create_con("CONIN$", &def_attrs);
+        let out_handle = create_con("CONOUT$", &def_attrs);
+        let err_handle = create_con("CONERR$", &def_attrs);
 
-    let startup_info = ll::process::STARTUPINFO {
-        cb: mem::size_of::<ll::process::STARTUPINFO>() as DWORD,
-        lpReserved: ptr::mut_null(),
-        lpDesktop: ptr::mut_null(),
-        lpTitle: ptr::mut_null(),
-        dwX: 0,
-        dwY: 0,
-        dwXSize: 0,
-        dwYSize: 0,
-        dwXCountChars: 0,
-        dwYCountChars: 0,
-        dwFillAttribute: 0,
-        dwFlags: STARTF_USESTDHANDLES,
-        wShowWindow: 0,
-        cbReserved2: 0,
-        lpReserved2: ptr::mut_null(),
-        hStdInput: in_handle,
-        hStdOutput: out_handle,
-        hStdError: err_handle,
-    };
+        let startup_info = ll::process::STARTUPINFO {
+            cb: mem::size_of::<ll::process::STARTUPINFO>() as DWORD,
+            lpReserved: ptr::mut_null(),
+            lpDesktop: ptr::mut_null(),
+            lpTitle: ptr::mut_null(),
+            dwX: 0,
+            dwY: 0,
+            dwXSize: 0,
+            dwYSize: 0,
+            dwXCountChars: 0,
+            dwYCountChars: 0,
+            dwFillAttribute: 0,
+            dwFlags: STARTF_USESTDHANDLES,
+            wShowWindow: 0,
+            cbReserved2: 0,
+            lpReserved2: ptr::mut_null(),
+            hStdInput: in_handle,
+            hStdOutput: out_handle,
+            hStdError: err_handle,
+        };
 
-    let mut proc_info = ll::process::PROCESS_INFORMATION {
-        hProcess: ptr::mut_null(),
-        hThread: ptr::mut_null(),
-        dwProcessId: 0,
-        dwThreadId: 0,
-    };
+        let mut proc_info = ll::process::PROCESS_INFORMATION {
+            hProcess: ptr::mut_null(),
+            hThread: ptr::mut_null(),
+            dwProcessId: 0,
+            dwThreadId: 0,
+        };
 
-    let mut cmd_line_u = cmd_line.to_c_u16();
-    let proc_ret = unsafe {
-        ll::process::CreateProcessW(
-            ptr::null(), cmd_line_u.as_mut_ptr(), &def_attrs, &def_attrs,
-            1, 0, ptr::mut_null(), ptr::null(), &startup_info, &mut proc_info
-        )
-    };
-    if proc_ret == 0 {
-        let err = unsafe { ll::process::GetLastError() };
-        debug!("err: {:?}", err);
-        return None; // FIXME
+        let mut cmd_line_u = cmd_line.to_c_u16();
+        let proc_ret = unsafe {
+            ll::process::CreateProcessW(
+                ptr::null(), cmd_line_u.as_mut_ptr(), &def_attrs, &def_attrs,
+                1, 0, ptr::mut_null(), ptr::null(), &startup_info, &mut proc_info
+            )
+        };
+        if proc_ret == 0 {
+            let err = unsafe { ll::process::GetLastError() };
+            debug!("err: {:?}", err);
+            return None; // FIXME
+        }
+
+        let ret = ConsoleProcess {
+            in_handle: in_handle,
+            out_handle: out_handle,
+            err_handle: err_handle,
+            proc_id: proc_info.dwProcessId,
+        };
+        Some(ret)
     }
 
-    let ret = ConsoleProcess {
-        in_handle: in_handle,
-        out_handle: out_handle,
-        err_handle: err_handle,
-        proc_id: proc_info.dwProcessId,
-    };
-    Some(ret)
-}
-
-impl ConsoleProcess {
     #[allow(dead_code)]
     pub fn largest_window_size(&self) -> (i16, i16) {
         let lcoord = unsafe { ll::console::GetLargestConsoleWindowSize(self.out_handle) };

@@ -160,7 +160,7 @@ fn main() {
     let (sender, receiver) = comm::channel();
 
     let console_wnd = unsafe { ll::console::GetConsoleWindow() };
-    let subproc = console::create_subprocess(cmd_line).expect("failed to create subprocess");
+    let subproc = console::ConsoleProcess::new(cmd_line).expect("failed to create subprocess");
 
     // will be used in extern callback
     local_data::set(key_data, (sender, subproc));
