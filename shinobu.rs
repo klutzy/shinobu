@@ -3,15 +3,20 @@
 #[phase(syntax, link)]
 extern crate log;
 
+extern crate getopts;
 extern crate windows = "rust-windows";
 
 use std::io::net::tcp::{TcpListener, TcpStream};
-use std::io::net::ip::{Ipv4Addr, SocketAddr};
+use std::io::net::ip::SocketAddr;
 use std::io::{Acceptor, Listener};
 use std::local_data;
 use std::comm;
 use std::ptr;
 use std::str;
+use std::os;
+use std::from_str::FromStr;
+
+use getopts::{getopts, optopt};
 
 use windows::ll::{WPARAM, UINT, DWORD, HWND, LONG};
 
@@ -129,9 +134,28 @@ fn watch_console() {
 }
 
 fn main() {
-    // FIXME make configurable
-    let addr = SocketAddr { ip: Ipv4Addr(0, 0, 0, 0), port: 8000 };
-    let cmd_line = "cmd";
+    let args = os::args();
+    let opts = [
+        optopt("i", "ip", "", "IP"),
+        optopt("p", "port", "", "PORT"),
+    ];
+    let matches = match getopts(args.tail(), opts) {
+        Err(e) => fail!("Bad option: {}", e),
+        Ok(m) => m,
+    };
+    let ip = matches.opt_str("i").unwrap_or(~"127.0.0.1");
+    let ip = FromStr::from_str(ip).expect("bad ip address");
+
+    let port = matches.opt_str("p").unwrap_or(~"23");
+    let port = FromStr::from_str(port).expect("bad port number");
+
+    let addr = SocketAddr { ip: ip, port: port };
+
+    let cmd_line = if !matches.free.is_empty() {
+        (*matches.free.get(0)).clone()
+    } else {
+        ~"cmd"
+    };
 
     let (sender, receiver) = comm::channel();
 
