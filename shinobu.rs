@@ -11,6 +11,7 @@ use std::io::{Acceptor, Listener};
 use std::local_data;
 use std::comm;
 use std::ptr;
+use std::str;
 
 use windows::ll::{WPARAM, UINT, DWORD, HWND, LONG};
 
@@ -44,24 +45,49 @@ fn accept_telnet_serv(console_wnd: HWND, mut stream: TcpStream, r: comm::Receive
         let mut stream = stream_;
         loop {
             let key = stream.read_byte().unwrap();
-            unsafe {
-                match key {
-                    0x0a => continue, // skip \n. \r is already consumed
-                    0xff => {
-                        // 0xff 0xf1 ?
-                        // drop 3 bytes
-                        let _b1 = stream.read_byte().unwrap();
-                        let _b2 = stream.read_byte().unwrap();
+            match key {
+                0x00 => continue, // NULL
+                0x07 => continue, // BELL
+                0x08 => continue, // backspace
+                0x09 => continue, // tab
+                0x0a => continue, // skip \n. \r is handled below
+                0x0b => continue, // vertical tab
+                0x0c => continue, // form feed
+                0..31 if key != 0x0d => continue, // control seq. ignore for now
+                0xff => { // telnet command
+                    let cmd = stream.read_byte().unwrap();
+                    match cmd {
+                        0xf0..0xfa => continue,
+                        0xfb..0xfe => { // option negotiation
+                            let _option = stream.read_byte().unwrap();
+                            continue;
+                        }
+                        0xff => { // IAC
+                            // key == 255
+                        }
+                        _ => {}
+                    }
+                }
+                _ => {
+                    // utf-8 character
+                    let char_width = str::utf8_char_width(key);
+                    if char_width == 0 {
                         continue;
                     }
-                    0..31 if key != 0x0d => continue, // control seq. ignore for now
-                    _ => {}
+                    let mut bytes = [0, ..3];
+                    bytes[0] = key;
+                    stream.fill(bytes.mut_slice(1, char_width)).unwrap();
+                    let s = str::from_utf8_lossy(bytes);
+                    let s = s.as_slice().char_at(0);
+                    unsafe {
+                        // send WM_CHAR to console window
+                        // WM_KEYDOWN and WM_KEYUP seems not necessary..
+                        static WM_CHAR: UINT = 0x0102;
+                        windows::ll::PostMessageW(console_wnd, WM_CHAR, s as WPARAM, 0);
+                    }
                 }
-                // send WM_CHAR to console window
-                // WM_KEYDOWN and WM_KEYUP seems not necessary..
-                static WM_CHAR: UINT = 0x0102;
-                windows::ll::PostMessageW(console_wnd, WM_CHAR, key as WPARAM, 0);
             }
+
         }
     });
 
@@ -85,13 +111,12 @@ extern "system" fn on_console_event(_hWinEventHook: ll::HWINEVENTHOOK, _event: D
     });
 }
 
-fn watch_console(subproc: ConsoleProcess) {
+fn watch_console() {
     static EVENT_CONSOLE_CARET: UINT = 0x4001;
     static EVENT_CONSOLE_END_APPLICATION: UINT = 0x4007;
     static WINEVENT_OUTOFCONTEXT: UINT = 0;
     //static WINEVENT_SKIPOWNPROCESS: UINT = 0x02;
 
-    let _pid = subproc.proc_id;
     let flags = WINEVENT_OUTOFCONTEXT;
     let _hook_handle = unsafe {
         ll::SetWinEventHook(EVENT_CONSOLE_CARET, EVENT_CONSOLE_END_APPLICATION,
@@ -125,5 +150,5 @@ fn main() {
         }
     });
 
-    watch_console(subproc);
+    watch_console();
 }
