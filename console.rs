@@ -103,11 +103,13 @@ pub fn create_subprocess(cmd_line: &str) -> Option<ConsoleProcess> {
 }
 
 impl ConsoleProcess {
+    #[allow(dead_code)]
     pub fn largest_window_size(&self) -> (i16, i16) {
         let lcoord = unsafe { ll::console::GetLargestConsoleWindowSize(self.out_handle) };
         (lcoord.X, lcoord.Y)
     }
 
+    #[allow(dead_code)]
     pub fn set_screen_buffer_size(&self, x: i16, y: i16) -> bool {
         let lcoord = COORD { X: x, Y: y };
         let ret = unsafe { ll::console::SetConsoleScreenBufferSize(self.out_handle, lcoord) };
