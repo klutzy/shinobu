@@ -112,7 +112,15 @@ extern "system" fn on_console_event(_hWinEventHook: ll::HWINEVENTHOOK, _event: D
     local_data::get(key_data, |data| {
         let (ref sender, ref subproc) = *data.unwrap();
         let output = subproc.read_console();
-        sender.send(output);
+        let ret = sender.try_send(output);
+        if !ret {
+            let console_wnd = unsafe { ll::console::GetConsoleWindow() };
+            unsafe {
+                static WM_CLOSE: UINT = 0x0010;
+                // main process will also be closed
+                windows::ll::PostMessageW(console_wnd, WM_CLOSE, 0, 0);
+            }
+        }
     });
 }
 
@@ -171,6 +179,7 @@ fn main() {
         for stream in acceptor.incoming() {
             // only one connection for now
             accept_telnet_serv(console_wnd, stream.unwrap(), receiver);
+            return;
         }
     });
 
