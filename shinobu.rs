@@ -1,8 +1,9 @@
-#[feature(globs, macro_rules, phase)];
+#![feature(globs, macro_rules, phase)]
 
 #[phase(syntax, link)]
 extern crate log;
 
+extern crate libc;
 extern crate getopts;
 extern crate windows = "rust-windows";
 
@@ -18,15 +19,15 @@ use std::from_str::FromStr;
 
 use getopts::{getopts, optopt};
 
-use windows::ll::{WPARAM, UINT, DWORD, HWND, LONG};
+use windows::ll::types::{WPARAM, UINT, DWORD, HWND, LONG};
+use windows::ll::all::PostMessageW;
 
 use console::ConsoleProcess;
 
 pub mod ll {
-    use windows::ll::{UINT, DWORD, HMODULE, HANDLE};
+    use windows::ll::types::{UINT, DWORD, HMODULE, HANDLE};
 
     pub mod console;
-    pub mod process;
 
     pub type HWINEVENTHOOK = HANDLE;
     // extern "system" fn WinEventProc(hWinEventHook: HWINEVENTHOOK, event: DWORD,
@@ -88,7 +89,7 @@ fn accept_telnet_serv(console_wnd: HWND, mut stream: TcpStream, r: comm::Receive
                         // send WM_CHAR to console window
                         // WM_KEYDOWN and WM_KEYUP seems not necessary..
                         static WM_CHAR: UINT = 0x0102;
-                        windows::ll::PostMessageW(console_wnd, WM_CHAR, s as WPARAM, 0);
+                        PostMessageW(console_wnd, WM_CHAR, s as WPARAM, 0);
                     }
                 }
             }
@@ -112,13 +113,13 @@ extern "system" fn on_console_event(_hWinEventHook: ll::HWINEVENTHOOK, _event: D
     local_data::get(key_data, |data| {
         let (ref sender, ref subproc) = *data.unwrap();
         let output = subproc.read_console();
-        let ret = sender.try_send(output);
-        if !ret {
+        let ret = sender.send_opt(output);
+        if ret.is_err() {
             let console_wnd = unsafe { ll::console::GetConsoleWindow() };
             unsafe {
                 static WM_CLOSE: UINT = 0x0010;
                 // main process will also be closed
-                windows::ll::PostMessageW(console_wnd, WM_CLOSE, 0, 0);
+                PostMessageW(console_wnd, WM_CLOSE, 0, 0);
             }
         }
     });
@@ -151,10 +152,10 @@ fn main() {
         Err(e) => fail!("Bad option: {}", e),
         Ok(m) => m,
     };
-    let ip = matches.opt_str("i").unwrap_or(~"127.0.0.1");
+    let ip = matches.opt_str("i").unwrap_or("127.0.0.1".to_owned());
     let ip = FromStr::from_str(ip).expect("bad ip address");
 
-    let port = matches.opt_str("p").unwrap_or(~"23");
+    let port = matches.opt_str("p").unwrap_or("23".to_owned());
     let port = FromStr::from_str(port).expect("bad port number");
 
     let addr = SocketAddr { ip: ip, port: port };
@@ -162,7 +163,7 @@ fn main() {
     let cmd_line = if !matches.free.is_empty() {
         (*matches.free.get(0)).clone()
     } else {
-        ~"cmd"
+        "cmd".to_owned()
     };
 
     let (sender, receiver) = comm::channel();

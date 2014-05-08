@@ -1,9 +1,12 @@
-use std::libc;
+use libc;
+
 use std::ptr;
 use std::mem;
 use std::str::from_chars;
 
-use windows::ll::{LPCWSTR, DWORD, HANDLE};
+use windows::ll::types::{LPCWSTR, DWORD, HANDLE};
+use windows::ll::all::{SECURITY_ATTRIBUTES, STARTUPINFO, PROCESS_INFORMATION};
+use windows::ll::all::{CreateProcessW, GetLastError};
 use windows::wchar::ToCU16Str;
 
 use super::ll;
@@ -13,13 +16,13 @@ extern "system" {
     pub fn CreateFileW(lpFileName: LPCWSTR,
                        dwDesiredAccess: DWORD,
                        dwShareMode: DWORD,
-                       lpSecurityAttributes: *ll::process::SECURITY_ATTRIBUTES,
+                       lpSecurityAttributes: *SECURITY_ATTRIBUTES,
                        dwCreationDisposition: DWORD,
                        dwFlagsAndAttributes: DWORD,
                        hTemplateFile: HANDLE) -> HANDLE;
 }
 
-pub fn create_con(s: &str, attrs: &ll::process::SECURITY_ATTRIBUTES) -> HANDLE {
+pub fn create_con(s: &str, attrs: &SECURITY_ATTRIBUTES) -> HANDLE {
     let s = s.to_c_u16();
     unsafe {
         CreateFileW(s.as_ptr(),
@@ -44,8 +47,8 @@ impl ConsoleProcess {
     pub fn new(cmd_line: &str) -> Option<ConsoleProcess> {
         static STARTF_USESTDHANDLES: DWORD = 0x100;
 
-        let def_attrs = ll::process::SECURITY_ATTRIBUTES {
-            nLength: mem::size_of::<ll::process::SECURITY_ATTRIBUTES>() as DWORD,
+        let def_attrs = SECURITY_ATTRIBUTES {
+            nLength: mem::size_of::<SECURITY_ATTRIBUTES>() as DWORD,
             lpSecurityDescriptor: ptr::mut_null(),
             bInheritHandle: 1,
         };
@@ -53,8 +56,8 @@ impl ConsoleProcess {
         let out_handle = create_con("CONOUT$", &def_attrs);
         let err_handle = create_con("CONOUT$", &def_attrs);
 
-        let startup_info = ll::process::STARTUPINFO {
-            cb: mem::size_of::<ll::process::STARTUPINFO>() as DWORD,
+        let mut startup_info = STARTUPINFO {
+            cb: mem::size_of::<STARTUPINFO>() as DWORD,
             lpReserved: ptr::mut_null(),
             lpDesktop: ptr::mut_null(),
             lpTitle: ptr::mut_null(),
@@ -74,7 +77,7 @@ impl ConsoleProcess {
             hStdError: err_handle,
         };
 
-        let mut proc_info = ll::process::PROCESS_INFORMATION {
+        let mut proc_info = PROCESS_INFORMATION {
             hProcess: ptr::mut_null(),
             hThread: ptr::mut_null(),
             dwProcessId: 0,
@@ -83,13 +86,13 @@ impl ConsoleProcess {
 
         let mut cmd_line_u = cmd_line.to_c_u16();
         let proc_ret = unsafe {
-            ll::process::CreateProcessW(
+            CreateProcessW(
                 ptr::null(), cmd_line_u.as_mut_ptr(), &def_attrs, &def_attrs,
-                1, 0, ptr::mut_null(), ptr::null(), &startup_info, &mut proc_info
+                1, 0, ptr::mut_null(), ptr::null(), &mut startup_info, &mut proc_info
             )
         };
         if proc_ret == 0 {
-            let err = unsafe { ll::process::GetLastError() };
+            let err = unsafe { GetLastError() };
             debug!("err: {:?}", err);
             return None; // FIXME
         }
@@ -130,7 +133,7 @@ impl ConsoleProcess {
         };
 
         let size = buf_info.dwSize;
-        let mut buf: ~[CHAR_INFO] = ~[];
+        let mut buf: Vec<CHAR_INFO> = Vec::new();
         for _ in range(0, (size.X as uint) * (size.Y as uint)) {
             buf.push(CHAR_INFO {
                 uChar: Char { data: [0, 0] },
@@ -152,11 +155,11 @@ impl ConsoleProcess {
             )
         };
         if ret == 0 {
-            let err = unsafe { ll::process::GetLastError() };
+            let err = unsafe { GetLastError() };
             fail!("err: {:?}", err);
         }
 
-        let mut output: ~[char] = ~[];
+        let mut output: Vec<char> = Vec::new();
         let mut x = 0;
         //let mut y = 0;
         for b in buf.iter() {
@@ -182,6 +185,6 @@ impl ConsoleProcess {
                 }
             }
         }
-        from_chars(output)
+        from_chars(output.as_slice())
     }
 }

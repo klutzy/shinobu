@@ -1,9 +1,9 @@
-#[allow(non_camel_case_types)];
-#[allow(uppercase_variables)];
+#![allow(non_camel_case_types)]
+#![allow(uppercase_variables)]
 
 use std;
 
-use windows::ll::*;
+use windows::ll::types::*;
 
 // winbase.h
 
@@ -17,14 +17,14 @@ extern "system" {
 pub type PHANDLER_ROUTINE = *c_void;
 
 pub struct SECURITY_ATTRIBUTES {
-    nLength: DWORD,
-    lpSecurityDescriptor: LPVOID,
-    bInheritHandle: BOOL,
+    pub nLength: DWORD,
+    pub lpSecurityDescriptor: LPVOID,
+    pub bInheritHandle: BOOL,
 }
 
 // C: union { WCHAR unicodeChar; CHAR asciiChar; }
 pub struct Char {
-    data: [c_uchar, ..2u],
+    pub data: [c_uchar, ..2u],
 }
 
 impl Char {
@@ -52,7 +52,7 @@ impl Char {
 //     FOCUS_EVENT_RECORD FocusEvent;
 // };
 pub struct EventRecord {
-    data: [c_uchar, ..0u],
+    pub data: [c_uchar, ..0u],
 }
 
 impl EventRecord {
@@ -74,18 +74,18 @@ impl EventRecord {
 }
 
 pub struct CHAR_INFO {
-    uChar: Char,
-    Attributes: WORD,
+    pub uChar: Char,
+    pub Attributes: WORD,
 }
 
 pub struct CONSOLE_CURSOR_INFO {
-    dwSize: DWORD,
-    bVisible: BOOL,
+    pub dwSize: DWORD,
+    pub bVisible: BOOL,
 }
 
 pub struct CONSOLE_FONT_INFO {
-    nFont: DWORD,
-    dwFontSize: COORD,
+    pub nFont: DWORD,
+    pub dwFontSize: COORD,
 }
 
 // minimum: vista
@@ -107,18 +107,18 @@ pub struct CONSOLE_FONT_INFO {
 //}
 
 pub struct CONSOLE_READCONSOLE_CONTROL {
-    nLength: ULONG,
-    nInitialChars: ULONG,
-    dwCtrlWakeupMask: ULONG,
-    dwControlKeyState: ULONG,
+    pub nLength: ULONG,
+    pub nInitialChars: ULONG,
+    pub dwCtrlWakeupMask: ULONG,
+    pub dwControlKeyState: ULONG,
 }
 
 pub struct CONSOLE_SCREEN_BUFFER_INFO {
-    dwSize: COORD,
-    dwCursorPosition: COORD,
-    wAttributes: WORD,
-    srWindow: SMALL_RECT,
-    dwMaximumWindowSize: COORD,
+    pub dwSize: COORD,
+    pub dwCursorPosition: COORD,
+    pub wAttributes: WORD,
+    pub srWindow: SMALL_RECT,
+    pub dwMaximumWindowSize: COORD,
 }
 
 // minimum: vista
@@ -136,56 +136,56 @@ pub struct CONSOLE_SCREEN_BUFFER_INFO {
 
 // minimum: XP
 pub struct CONSOLE_SELECTION_INFO {
-    dwFlags: DWORD,
-    dwSelectionAnchor: COORD,
-    srSelection: SMALL_RECT,
+    pub dwFlags: DWORD,
+    pub dwSelectionAnchor: COORD,
+    pub srSelection: SMALL_RECT,
 }
 
 pub struct COORD {
-    X: SHORT,
-    Y: SHORT,
+    pub X: SHORT,
+    pub Y: SHORT,
 }
 
 // "internal"
 pub struct FOCUS_EVENT_RECORD {
-    bSetFocus: BOOL,
+    pub bSetFocus: BOOL,
 }
 
 pub struct INPUT_RECORD {
-    EventType: WORD,
-    Event: EventRecord,
+    pub EventType: WORD,
+    pub Event: EventRecord,
 }
 
 pub struct KEY_EVENT_RECORD {
-    bKeyDown: BOOL,
-    wRepeatCount: WORD,
-    wVirtualKeyCode: WORD,
-    wVirtualScanCode: WORD,
-    uChar: Char,
-    dwControlKeyState: DWORD,
+    pub bKeyDown: BOOL,
+    pub wRepeatCount: WORD,
+    pub wVirtualKeyCode: WORD,
+    pub wVirtualScanCode: WORD,
+    pub uChar: Char,
+    pub dwControlKeyState: DWORD,
 }
 
 // "internal"
 pub struct MENU_EVENT_RECORD {
-    dwCommandId: UINT,
+    pub dwCommandId: UINT,
 }
 
 pub struct MOUSE_EVENT_RECORD {
-    dwMousePosition: COORD,
-    dwButtonState: DWORD,
-    dwControlKeyState: DWORD,
-    dwEventFlags: DWORD,
+    pub dwMousePosition: COORD,
+    pub dwButtonState: DWORD,
+    pub dwControlKeyState: DWORD,
+    pub dwEventFlags: DWORD,
 }
 
 pub struct SMALL_RECT {
-    Left: SHORT,
-    Top: SHORT,
-    Right: SHORT,
-    Bottom: SHORT,
+    pub Left: SHORT,
+    pub Top: SHORT,
+    pub Right: SHORT,
+    pub Bottom: SHORT,
 }
 
 pub struct WINDOW_BUFFER_SIZE_RECORD {
-    dwSize: COORD,
+    pub dwSize: COORD,
 }
 
 extern "system" {
@@ -274,7 +274,7 @@ extern "system" {
     pub fn SetConsoleWindowInfo(arg5: HANDLE, arg2: BOOL, arg3: *SMALL_RECT) -> BOOL;
 
     pub fn WriteConsoleW(
-        arg5: HANDLE, arg2: PCVOID, arg3: DWORD, arg4: PDWORD, arg5: PVOID
+        arg5: HANDLE, arg2: *VOID, arg3: DWORD, arg4: PDWORD, arg5: PVOID
     ) -> BOOL;
 
     pub fn WriteConsoleInputW(
