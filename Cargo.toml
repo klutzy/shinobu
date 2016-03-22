@@ -1,0 +1,13 @@
+[package]
+name = "shinobu"
+version = "0.1.0"
+authors = ["klutzy <klutzytheklutzy@gmail.com>"]
+
+# TODO versions
+[dependencies]
+winapi = "*"
+log="*"
+user32-sys = "*"
+gdi32-sys = "*"
+kernel32-sys = "*"
+unicode-width = "0.1.3"
